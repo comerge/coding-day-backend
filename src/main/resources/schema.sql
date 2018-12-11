@@ -1,0 +1,35 @@
+CREATE SCHEMA IF NOT EXISTS backend AUTHORIZATION codingday;
+SET SCHEMA backend;
+
+DROP TABLE IF EXISTS user;
+CREATE TABLE user (
+    id IDENTITY PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(250) NOT NULL
+);
+
+DROP TABLE IF EXISTS team;
+CREATE TABLE team (
+    id IDENTITY PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(1000) NOT NULL
+);
+
+DROP TABLE IF EXISTS map_user_to_team;
+CREATE TABLE map_user_to_team (
+    user BIGINT NOT NULL,
+    team BIGINT NOT NULL,
+    FOREIGN KEY (user) REFERENCES user(id),
+    FOREIGN KEY (team) REFERENCES team(id)
+);
+
+DROP TABLE IF EXISTS news;
+CREATE TABLE news (
+    id IDENTITY PRIMARY KEY,
+    created_at TIMESTAMP NOT NULL,
+    author BIGINT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    message VARCHAR(1000) NOT NULL,
+    FOREIGN KEY (author) REFERENCES user(id)
+);
