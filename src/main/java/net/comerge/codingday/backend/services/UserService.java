@@ -1,23 +1,29 @@
 package net.comerge.codingday.backend.services;
 
-import java.util.List;
-
-import org.jooq.DSLContext;
-
 import net.comerge.codingday.backend.database.models.backend.tables.User;
 import net.comerge.codingday.backend.database.models.backend.tables.records.UserRecord;
-import org.springframework.beans.factory.annotation.Autowired;
+import net.comerge.codingday.backend.dto.UserDTO;
+import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class UserService {
 
-    @Autowired
-    private DSLContext context;
+    private final DSLContext context;
+
+    public UserService(DSLContext context) {
+        this.context = context;
+    }
 
     public List<UserRecord> getAllUsers() {
         return context.select()
                 .from(User.USER)
                 .fetchInto(UserRecord.class);
+    }
+
+    public void createUser(UserDTO newUser) {
+        // ...
     }
 }

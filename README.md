@@ -27,6 +27,8 @@ Spring will then start an embedded Tomcat and deploy the application there.
 
 There are two test REST endpoint which can be reached at http://localhost:8080/v1/test and http://localhost:8080/v1/public/users
 
+Using Postman (https://www.getpostman.com/) instead of the browser allows you to also send data via HTTP POST to the backend.
+
 ### Running the unit tests
 
 Right-click a test and select `Run ...` to execute a test.
@@ -56,9 +58,10 @@ Implement the following endpoints as far as the time allows:
 1. `GET /public/users/{id}`
         Should deliver a JSON object of a single user with the given id (all fields).
 2. `POST /public/users`
-        Should create a new user. Note: the sample schema doesn't contain user credentials, think about how you would store it in the DB.
+        Should create a new user. Keep in mind that the database will create a primary key (ID) for you.
 3. `GET /public/teams`
         Should deliver a list of teams with three fields per team: id, name and number of users in the team.
+        First fetch all teams and then count the number of users for each team separately. Performance is not a issue here.
 4. `GET /public/teams/{id}`
         Should deliver a JSON object of a single team with the given id (all fields) together with a list of users of the team.
 5. `GET /public/news`
@@ -66,12 +69,107 @@ Implement the following endpoints as far as the time allows:
 6. `GET /public/news/{id}`
         Should deliver a JSON object of a single news with the given id (all fields).
 7. Extend the `GET /public/users`
-        It should be possible to optionally filter the user list by username (or username parts).
+        It should be possible to optionally filter the user list by username (or username parts). Use query parameters
+        to send the optional filter, e.g. `/public/users?username=rico`
 8. Extend the `GET /public/news`
         It should be possible to optionally filter the news list by title or message (or parts of them) or by author id.
+        Use query parameters for the optional filters, e.g. `/public/news?authorId=3&filter=foo`
 
 For each endpoint write integration tests. 
 
+## jOOQ
+
+jOOQ is a framework which allows you to write SQL statements directly in java code in a type safe way. It's not a
+Object-Rational mapper but it provides meta data which is generated from a existing database schema.
+
+You can inject a `DSLContext` into your class and use this to write queries. E.g. to select some users you might write
+```
+// SQL
+SELECT * 
+    FROM user 
+    WHERE user.first_name ILIKE '%rico%';
+
+// jOOQ
+context.select()
+        .from(User.USER)
+        .where(User.USER.FIRST_NAME.likeIgnoreCase("%rico%"))
+        .fetchInto(UserRecord.class);
+```
+The SQL syntax can be translated more or less directly into jOOQ syntax and the generated meta data classes (e.g. 
+`User.USER`) helps with type safety.
+
+Of course you can also insert data:
+```
+context.insertInto(User.USER)
+        .set(User.USER.FIRST_NAME, "new")
+        .set(User.USER.LAST_NAME, "user")
+        .set(User.USER.EMAIL, "new.user@test.com")
+        .execute();
+
+// or alternatively
+
+final UserRecord record = context.newRecord(User.USER);
+record.setFirstName("new");
+record.setLastName("user");
+record.setEmail("new.user@test.com");
+record.store();
+```
+Be aware that the primary key is generated automatically by the database.
+
+## lombok
+
+To make live a bit easier we use lombok to implement our DTOs. This tool will help you to reduce boilerplate code
+by adding some annotations allowing you to skip writing getters and setters for example.
+
+For example this two classes are the same:
+```
+// normal java class
+
+public class SimpleDTO {
+    private String first;
+    private int second;
+
+    public SimpleDTO setFirst(String first) {
+        this.first = first;
+        return this;
+    }
+    public String getFrist() {
+        return first;
+    }
+
+    public SimpleDTO setSecond(int second) {
+        this.second = second;
+        return this;
+    }
+    public int getSecond() {
+        return second;
+    }
+}
+
+// or with lombok
+
+@Data                    // generate getters, setters and implements equals()
+@ToString                // generate toString()
+@Accessors(chain = true) // have the `return this;` in the setters
+public class SimpleDTO {
+    private String first;
+    private int second;
+}
+```
+
+## assertJ
+
+We use assertJ for unit tests. It provides you with a lot of nice and convenient functionality. You almost always write
+it like this `assertThat(valueUnderTest).isHasSomething(expectedValue)` E.g.
+```
+assertThat(23).isEqualTo(23);
+assertThat(someObject).isNotNull();
+assertThat(someListLikeThing).hasSize(23);
+assertThat(someListLikeThing).containsExactlyInAnyOrder(23, 11, 42);
+assertThat(someObject.getName()).isNotNull().startsWith("Ric");
+```
+The `assertThat(value)` method provides a lot of functions depending on the given value which can be seen by using
+the IDEs completion (e.g. CTRL+Space).
 
 ## Some helpful links
 
